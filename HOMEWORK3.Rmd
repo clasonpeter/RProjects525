@@ -1,0 +1,122 @@
+---
+title: "HW3"
+author: "Clason Peter"
+date: "2025-09-17"
+output:
+  word_document: default
+  html_document: default
+---
+
+Problem 1
+```{r, cache=TRUE}
+library(alr4)
+data(jevons)
+attach(jevons)
+head(jevons)
+```
+
+```{r, cache=TRUE}
+plot(Weight~Age, type="b")
+Wts <- n / (SD^2)
+ols <- lm(Weight ~ Age)
+wls <- lm(Weight ~ Age, weights = Wts)
+lines(Age, wls$fitted.values, col=2, lty=2)
+abline(ols, col=3, lty=3)  
+legend("topright", lty=c(2,3), col=c(2,3), 
+       legend=c("WLS", "OLS"))
+```
+
+```{r, cache=TRUE}
+summary(ols)
+```
+
+```{r, cache=TRUE}
+summary(wls)
+```
+The OLS treats all of the age groups equally, even if ther are differences in the number of coins or variability. The WLS accounts for these differences with Wts= n/SD^2. Our WLS slightly lowers the intercept which in turn makes the slope less steep. The OLS overweights age groups with fewer coins or a higher variance which can lead to bias in the slope. This means that the WLS provides better predictions, especially where the age groups might be smaller or more variable. 
+
+```{r, cache=TRUE}
+NAges <- data.frame(Age=1:5)
+predict(wls, NAges)
+```
+The only legal coins from our prediction are 1 and 2. Coin 3 falls slightly below and 4 are 5 are significantly below the limit.
+
+Problem 2
+```{r, cache=TRUE}
+library(alr4)
+data(stopping)
+attach(stopping)
+```
+
+```{r, cache=TRUE}
+plot(Speed, Distance) 
+fit1 <- lm(Distance ~ Speed)
+abline(fit1)  
+plot(fit1$fitted.values, fit1$residuals,
+     xlab="Fitted values", ylab="Residuals")
+```
+We can see NCV in the Residual vs. Fitted values plot so we automatically know we have a problem. We can fix this with the formula "lm(Distance ~ I(Speed^2)"
+```{r, cache=TRUE}
+fit2 <- lm(Distance ~ I(Speed^2))
+plot(Speed, Distance)
+lines(sort(Speed), fit2$fitted[order(Speed)])
+plot(fit2$fitted.values, fit2$residuals, xlab="Fitted values", ylab="Residuals")
+```
+Here we can see that we have fixed the NCV with our formula lm(Distance ~ I(Speed^2). This means that the relationship between speed and distance is quadratic. Which makes the quadratic model a much better predictor. At higher speeds the linear model underestimates stopping speed and overestimates it at lower speeds.
+
+```{r, cache=TRUE}
+summary(fit1)
+```
+
+```{r, cache=TRUE}
+summary(fit2)
+```
+
+
+Problem 3
+```{r, cache=TRUE}
+library(alr4)
+data(MinnLand)
+attach(MinnLand)
+str(MinnLand)
+summary(MinnLand)
+```
+
+```{r, cache=TRUE}
+MinnLand_sub <- MinnLand[, c("acrePrice", "improvements", "year", "acres", "tillable", "crpPct", "productivity")]
+MinnLand_sub <- na.omit(MinnLand_sub)
+
+
+model1 <- lm(acrePrice ~ improvements + year + acres + tillable + crpPct + productivity, data=MinnLand_sub)
+summary(model1)
+par(mfrow=c(2,2))
+plot(model1)
+```
+We removed the rows with missing values in the used variables and we fit the linear model. We then checked the diagnostics to see that there is NCV in both Rvs.FV and it is slightly right skewed in the QQ plot.We will conduct log transformation to attempt to fix these problems and then check them with a box-cox.
+
+```{r, cache=TRUE}
+model2 <- lm(log(acrePrice) ~ improvements + year + acres + tillable + crpPct + productivity, data=MinnLand_sub)
+
+par(mfrow=c(2,2))
+plot(model2)
+```
+We can now see this has reduced the skew in the QQ plot and has reduced the NCV/Funnel shape in both Rvs.FV plots. This has made signifcant improvement to our plots. We will now check to make sure the log transformation is reasonable with a box-cox.
+```{r, cache=TRUE}
+boxCox(model1, lambda=seq(-1,2,0.1))
+```
+This confirms that lambda is close to 0 which confirms the log transformation is reasonable to conduct. The improvments were small but they are there. The log transformation proves to be viable as we see that acre price is no longer highly skewed. The predictors acre, tillable, and productivity prove to be the most important. There still could be some influential points so we can remove these points.
+```{r, cache=TRUE}
+library(car)
+
+
+rstudent(model2) -> stud_res
+outlierTest(model2)
+
+
+MinnLand_clean <- MinnLand_sub[-c(100, 250), ]
+model3 <- lm(log(acrePrice) ~ improvements + year + acres + tillable + crpPct + productivity, data=MinnLand_clean)
+summary(model3)
+par(mfrow=c(2,2))
+plot(model3)
+```
+We have removed these outliers to reduce the leverage and influence which makes the coefficients more stable. We used the car library because it has tools made to detect these points in regression models.

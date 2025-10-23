@@ -1,0 +1,121 @@
+---
+title: "Homework 2"
+author: "Clason Peter"
+date: "2025-09-09"
+output:
+  word_document: default
+  html_document: default
+---
+Problem 1
+```{r cache=TRUE}
+library(alr4)
+library(dplyr)
+data("UBSprices")
+attach(UBSprices)
+UBSprices%>%summary()
+```
+```{r cache=TRUE}
+
+plot(bigmac2003, bigmac2009,
+     xlab = "2003",
+     ylab = "2009",
+     main = "Big Mac Prices 2003 vs 2009",)
+
+Simple Linear regression does not work here beacuse of the constant variance assumption, which says that the variance around the line must be constant. With raw prices, the variance around the line increases as the price increase which violates this assumption.
+```{r cache=TRUE}
+plot(log(bigmac2003),log(bigmac2009),
+     xlab = "2003",
+     ylab = "2009",
+     main = "Natural Log of BMP 2003 vs 2009",)
+```
+This is more appropriate because by taking the logs we fix the variance issue. The spread is much more uniform which makes the assumption much more reasonable.
+
+```{r cache=TRUE}
+ (mod=lm(log(bigmac2009) ~ log(bigmac2003), data = UBSprices))
+```
+```{r cache=TRUE}
+plot(log(bigmac2009)~log(bigmac2003),
+     xlab="2003",
+     ylab="2009",
+     main="2003 vs 2009 Log with Regression Line",
+    data=UBSprices)
+
+mod%>%abline()
+```
+The slope coefficient of log(bigmac2003) measures how the 2009 Big Mac price changes in percentage terms when the 2003 price changes in percentage terms.
+
+Problem 2
+```{r cache=TRUE}
+library(alr4)
+library(dplyr)
+data("oldfaith")
+help("oldfaith")
+attach(oldfaith)
+oldfaith%>%summary()
+```
+```{r cache=TRUE}
+(mod1=lm(Interval~Duration, data = oldfaith))
+
+plot(Duration, Interval,
+     xlab = "Duration",
+     ylab = "Interval",
+     main = "Interval vs Duration")
+
+mod1%>%abline()
+```
+On average, the longer the last eruption lasts, the longer the wait will be until the next one. If the eruption is very short, the wait is shorter. If it’s long, the wait is longer.
+
+```{r cache=TRUE}
+newdata <- data.frame(Duration = 250)
+predict(mod1, newdata, interval = "confidence", level = 0.95)
+predict(mod1, newdata, interval = "prediction", level = 0.95)
+
+```
+Since the last eruption lasted about 250 seconds, the best estimate is that the next eruption will happen in about 78 minutes.If we look at the average pattern from years of data, it is pretty certain the true average wait is somewhere between 77 and 79 minutes.However, nature is always unpredictable so the next one could happen between 66 minutes and 90 minutes.
+
+Problem 3
+```{r cache=TRUE}
+library(alr4)
+library(dplyr)
+data(UN11)
+UN11%>%summary()
+```
+
+```{r cache=TRUE}
+(mod2=lm(fertility~log(ppgdp)+pctUrban, data=UN11))
+summary(mod2)
+```
+The model also reveals that higher GDP is linked to lower fertility, a rise of 1 unit in log(GDP) lowers fertility by around 0.615 children, holding urbanization constant. Urbanization is minor and with each step increase in urban population lowering fertility by 0.00044 children.
+```{r cache=TRUE}
+mod2%>%avPlots()
+```
+There is a negative trend between fertility and log(ppgdp). However, there is no real trend between fertility and pctUrban.
+
+Problem 4
+```{r cache=TRUE}
+library(car)
+data(Transact)
+head(Transact)
+summary(Transact)
+```
+
+```{r cache=TRUE}
+(modP41=lm(time~t1+t2,data=Transact))
+```
+
+```{r cache=TRUE}
+Transact$avg <- (Transact$t1 + Transact$t2)/2
+Transact$diff <- Transact$t1 - Transact$t2
+
+(modP42=lm(time~avg+diff, data=Transact))
+```
+
+```{r cache=TRUE}
+(modP43=lm(time~t2+diff, data=Transact))
+```
+
+```{r cache=TRUE}
+(modP44=lm(time~t1+t2+avg+diff, data=Transact))
+```
+
+Model 1-3 are very similar because they seem to be the same type of transformation, they just configure the data differently. Model 4 shows us an example of redundancy because we added in existing predictors. This makes the simpler models of 1-3 much easier to interpret. I would use model 1, as it is the most straightforward model we have. Keeping the model simple always improves clarity. 
