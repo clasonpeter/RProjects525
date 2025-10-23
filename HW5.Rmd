@@ -1,0 +1,98 @@
+---
+title: "Module 5"
+author: "Clason Peter"
+date: "2025-09-30"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r cache=TRUE}
+library(alr4)       
+library(caret)      
+library(doParallel) 
+library(dplyr)  
+data(MinnLand)
+```
+
+```{r cache=TRUE}
+
+MinnLand <- na.omit(MinnLand)
+
+
+MinnLand$log_price   <- log(MinnLand$acrePrice)
+MinnLand$sqrt_price  <- sqrt(MinnLand$acrePrice)
+
+MinnLand$year <- as.factor(MinnLand$year)
+```
+
+```{r cache=TRUE}
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)
+```
+
+```{r cache=TRUE}
+fit_model <- function(formula, data, method, folds, reps = NULL) {
+  if (is.null(reps)) {
+    ctrl <- trainControl(method = "cv", number = folds)
+  } else {
+    ctrl <- trainControl(method = "repeatedcv", number = folds, repeats = reps)
+  }
+  train(formula, data = data, method = method, trControl = ctrl)
+}
+```
+
+```{r cache=TRUE}
+# 5-Fold
+set.seed(18)
+
+FL5<- fit_model(log_price ~ year, MinnLand, "lm", folds = 5)
+FS5<- fit_model(sqrt_price ~ year, MinnLand, "lm", folds = 5)
+
+FL5
+FS5
+```
+
+```{r cache=TRUE}
+# 10-Fold
+set.seed(18)
+
+FL10<- fit_model(log_price ~ year, MinnLand, "lm", folds = 10)
+FS10<- fit_model(sqrt_price ~ year, MinnLand, "lm", folds = 10)
+
+FL10
+FS10
+```
+```{r cache=TRUE}
+set.seed(18)
+
+FLRS<- fit_model(log_price ~ year, MinnLand, "lm", folds = 2, reps = 1000)
+FSRS<- fit_model(sqrt_price ~ year, MinnLand, "lm", folds = 2, reps = 1000)
+
+FLRS
+FSRS
+```
+
+```{r cache=TRUE}
+results <- data.frame(
+  Model = c("Log - 5CV", "Sqrt - 5CV",
+            "Log - 10CV", "Sqrt - 10CV",
+            "Log - RS", "Sqrt - RS"),
+  RMSE = c(FL5$results$RMSE,
+           FS5$results$RMSE,
+           FL10$results$RMSE,
+          FS10$results$RMSE,
+           FLRS$results$RMSE,
+           FSRS$results$RMSE),
+  Rsquared = c(FL5$results$Rsquared,
+               FS5$results$Rsquared,
+               FL10$results$Rsquared,
+               FS10$results$Rsquared,
+               FLRS$results$Rsquared,
+               FSRS$results$Rsquared)
+)
+
+results
+```
+
+Among the log models, the 10-fold cross-validation model (FL10) produced the lowest RMSE (0.4613) and the highest R^2 (0.2980), making it the most accurate candidate. Therefore, FL10 was selected as the final model.The output reveals that employing a log scale to predict land prices provides a more consistent and precise method to forecast them. The prices of land within the state of Minnesota experience numerous influences over a period of time, and applying a log transformation assists in maintaining variance consistent and accounting for how prices multiply over time. Although R^2 values are not extremely significant , the model applied reveals significant relationships between the change of land prices each year.
