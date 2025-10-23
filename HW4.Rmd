@@ -1,0 +1,108 @@
+---
+title: "Homework4"
+author: "Clason Peter"
+date: "2025-09-24"
+output: word_document
+---
+Problem 1
+```{r, cache=TRUE}
+library(alr4)
+library(dplyr)
+data("MinnLand")
+head(MinnLand)
+```
+
+```{r, cache=TRUE}
+MinnLand$year <- as.factor(MinnLand$year)
+```
+Year is numeric but we cant to make it categorical because we are comparing prices across years.
+
+```{r, cache=TRUE}
+model <- lm(log(acrePrice) ~ year, data = MinnLand)
+summary(model)
+```
+I fit the linear model and used a log transformation to stabilize variance which helps make more reasonable assumptions.
+```{r, cache=TRUE}
+boxplot(log(acrePrice) ~ year, data = MinnLand,
+        main = "Log of Acre Price by Year",
+        xlab = "Year",
+        ylab = "Log(Acre Price)")
+```
+Here we can see that from 2002-2006 the price shows a gradual increase, which suggets that land prices in Minn were rising. In 2007, there was a slight dip in the median but after the prices generally increase again. So, overall this pattern in the boxplot supports the idea that land prices in Minnesota were increasing from 2002-2006 with a slight dip in 2007, to which they then recovered peaking in 2010-2011.
+```{r, cache=TRUE}
+par(mfrow = c(2, 2))
+plot(model)
+```
+The variance seems to be constant due to our log transformation, so we can assume our assumptions our good.
+```{r, cache=TRUE}
+anova(model)
+```
+Here we have a very small P-value which means that year has a significant effect on the overall prices.
+
+Problem 2
+```{r, cache=TRUE}
+MinnLand$year <- as.factor(MinnLand$year)
+MinnLand$region <- as.factor(MinnLand$region)
+
+M1 <- lm(log(acrePrice) ~ year + region, data = MinnLand)
+M2 <- lm(log(acrePrice) ~ year + region + year*region, data = MinnLand)
+```
+
+```{r, cache=TRUE}
+anova(M1, M2)
+```
+The p-value is vert small which means that the interaction is significant. Because the interaction is significant we know that M2 will be the best model.
+```{r, cache=TRUE}
+library(effects)
+plot(effect("year*region", M2), multiline = TRUE)
+```
+The effects model shows us that MOST of the lines are not parallel. This again confrims to me that the interaction has significance. Which points us in the direction of M2, as it is the better model. 
+
+Problem 3
+```{r, cache=TRUE}
+library(alr4)
+data("salary")
+head(salary)
+
+t.test(salary$salary[salary$sex=="Male"], salary$salary[salary$sex=="Female"], alternative="greater")
+```
+At .05 we reject the null hypothesis. There is proof that the mean salary of male faculty is greatee than female. However, at .01 the proof is not strong enough to make a claim on the difference. 
+
+```{r, cache=TRUE}
+salary$degree <- as.factor(salary$degree)
+salary$rank <- as.factor(salary$rank)
+salary$sex <- as.factor(salary$sex)
+
+model1 <- lm(salary ~ degree + rank + sex + year + ysdeg, data=salary)
+summary(model1)
+```
+This is a model of all predictors, including rank.
+
+```{r, cache=TRUE}
+model2 <- lm(salary ~ degree + sex + year + ysdeg, data=salary)
+summary(model2)
+```
+The two-sample t-test suggests that male faculty earn more than female faculty. The problem with this is that it ignores rank and experince. Which is why we needed to fit a full regression model with every predictor. The rank predictor is the main explainor for the male-female salary difference. In the full model sexFemale is positive but not significant. However, when rank is removed it turns slightly negative, still not significant. The gap between male and female salaries tends to be more of a gap in men being overrepresented in higher ranks.
+
+Problem 4
+```{r, cache=TRUE}
+library(alr4)
+data("Wool")
+head(Wool)
+```
+```{r, cache=TRUE}
+Wool$load <- as.factor(Wool$load)
+
+model_aov <- aov(cycles ~ len + amp + load, data = Wool)
+summary(model_aov)
+```
+```{r, cache=TRUE}
+TukeyHSD(model_aov, "load")
+```
+TukeyHSD comparisons for the factor "load" showed significant differences between some levels. Specifically, yarn subjected to a load of 50 survived, on average, 622 fewer cycles than yarn under a load of 40, and this difference was significant. On the other hand,the differnces between 45-40 and 50-45 were not significant. This means that increasing the load to 50 reduces yarn strength significantly compared to a load of 40. So, overall load 40 produces the strongest yarn and load 50 produces the weakest. 
+
+
+
+
+
+
